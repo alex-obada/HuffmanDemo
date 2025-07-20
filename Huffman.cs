@@ -38,7 +38,7 @@ namespace HuffmanDemo
                 Console.WriteLine();
             }
 
-            encoding = [];
+            encoding.Clear();
             foreach (char ch in message)
                 encoding.AddRange(symbolDict[ch].Encoding);
 
@@ -47,11 +47,11 @@ namespace HuffmanDemo
 
         private static Node BuildTree(IEnumerable<SymbolType> symbols)
         {
-            var heap = new PriorityQueue<Node, int>();
+            var heap = new PriorityQueue<Node, long>();
 
             foreach (SymbolType symbol in symbols)
             {
-                if (symbol.Count <= 0)
+                if (symbol.Count < 1)
                     throw new OverflowException("symbolType.Count overflow in Huffman.BuildTree()");
 
                 heap.Enqueue(new SymbolNode() { Symbol = symbol }, symbol.Count);
@@ -98,7 +98,7 @@ namespace HuffmanDemo
         {
             Node root = BuildTree(symbolTable);
 
-            string decoded = "";
+            StringBuilder decoded = new();
             Node? currentNode = root;
             List<bool> currentEncoding = [];
 
@@ -113,29 +113,27 @@ namespace HuffmanDemo
                 if (currentNode is null)
                     throw new InvalidDataException("currentNode is null in Huffman.Decode()");
 
-                if (currentNode.Left is null && currentNode.Right is null)
+                if (currentNode is { Left: null, Right: null })
                 {
-                    if (currentNode is not SymbolNode)
+                    if (currentNode is not SymbolNode leaf)
                         throw new InvalidDataException("leaf is not SymbolNode in Huffman.Decode()");
 
-                    SymbolType symbol = ((SymbolNode)currentNode).Symbol;
+                    SymbolType symbol = leaf.Symbol;
                     if (!symbol.Encoding.SequenceEqual(currentEncoding))
                         throw new InvalidDataException("current encoding differs from the original in Huffman.Decode()");
 
-                    decoded += symbol.Symbol;
-                    currentEncoding = [];
+                    decoded.Append(symbol.Symbol);
+                    currentEncoding.Clear();
                     currentNode = root;
                 }
-
-
             }
-            return decoded;
+            return decoded.ToString();
         }
 
 
         private abstract class Node
         {
-            public abstract int Count { get; }
+            public abstract long Count { get; }
             public Node? Left { get; set; } = null;
             public Node? Right { get; set; } = null;
 
@@ -149,14 +147,14 @@ namespace HuffmanDemo
         public class SymbolType
         {
             public char Symbol { get; set; }
-            public int Count { get; set; } = 0;
+            public long Count { get; set; } = 0;
             public List<bool> Encoding { get; set; } = [];
         }
 
         private class SymbolNode : Node
         {
             public required SymbolType Symbol { get; set; }
-            public override int Count => Symbol.Count;
+            public override long Count => Symbol.Count;
         }
 
         private class InternalNode : Node
@@ -167,13 +165,13 @@ namespace HuffmanDemo
                 Right = right;
                 _count = left.Count + right.Count;
 
-                if (_count <= 0)
+                if (_count < 1)
                     throw new OverflowException("_count overflow in Huffman.InternalNode.InternalNode()");
             }
 
-            public override int Count => _count;
+            public override long Count => _count;
 
-            private readonly int _count;
+            private readonly long _count;
         }
     }
 }
