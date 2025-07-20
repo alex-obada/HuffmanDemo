@@ -10,36 +10,27 @@ namespace HuffmanDemo
 {
     internal static class Huffman
     {
-        public static (List<bool> encoded, List<SymbolType> symbolTable) Encode(string message)
+        public static (List<bool> encoded, IEnumerable<SymbolType> symbolTable) Encode(string message)
         {
             ArgumentNullException.ThrowIfNull(message);
 
-            // parcurs messajul odata si facut count
-            List<SymbolType> symbols = [];
-            foreach (char c in message)
-            {
-                int index = -1;
-                for (int i = 0; i < symbols.Count; ++i)
-                {
-                    if (symbols[i].Symbol == c)
-                    {
-                        index = i; break;
-                    }
-                }
+            Dictionary<char, SymbolType> symbolDict = [];
 
-                if (index == -1)
-                    symbols.Add(new SymbolType { Symbol = c, Count = 1 });
+            foreach (char ch in message)
+            {
+                if (symbolDict.TryGetValue(ch, out var symbol))
+                    symbol.Count++;
                 else
-                    symbols[index].Count++;
+                    symbolDict[ch] = new SymbolType { Count = 1, Symbol = ch };
             }
 
-            // constriuit arborele cu un min heap
-            Node root = BuildTree(symbols);
-            List<bool> currentEncoding = [];
+            Node root = BuildTree(symbolDict.Values);
 
-            EncodeLeafs(root, currentEncoding);
+            List<bool> encoding = [];
+            EncodeLeafs(root, encoding);
 
-            foreach (var symbol in symbols)
+            // debug
+            foreach (var symbol in symbolDict.Values)
             {
                 Console.Write($"{symbol.Symbol} : {symbol.Count} : ");
                 foreach (bool bit in symbol.Encoding)
@@ -47,23 +38,14 @@ namespace HuffmanDemo
                 Console.WriteLine();
             }
 
-            // parcurs mesajul si cautat simbolul in copac
-            // apend in encoded
-            List<bool> encoded = [];
+            encoding = [];
             foreach (char ch in message)
-            {
-                foreach (var symbol in symbols)
-                    if (symbol.Symbol == ch)
-                    {
-                        encoded.AddRange(symbol.Encoding);
-                        break;
-                    }
-            }
+                encoding.AddRange(symbolDict[ch].Encoding);
 
-            return (encoded, symbols);
+            return (encoding, symbolDict.Values);
         }
 
-        private static Node BuildTree(List<SymbolType> symbols)
+        private static Node BuildTree(IEnumerable<SymbolType> symbols)
         {
             var heap = new PriorityQueue<Node, int>();
 
@@ -116,7 +98,7 @@ namespace HuffmanDemo
             currentEncoding.RemoveAt(currentEncoding.Count - 1);
         }
 
-        public static string Decode(List<bool> encoded, List<SymbolType> symbolTable) 
+        public static string Decode(List<bool> encoded, IEnumerable<SymbolType> symbolTable) 
         {
             Node root = BuildTree(symbolTable);
 
