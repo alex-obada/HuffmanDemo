@@ -52,10 +52,7 @@ namespace HuffmanDemo
             foreach (SymbolType symbol in symbols)
             {
                 if (symbol.Count <= 0)
-                {
-                    Console.WriteLine("[!] symbolType.Count overflow");
-                    Environment.Exit(1);
-                }
+                    throw new OverflowException("symbolType.Count overflow in Huffman.BuildTree()");
 
                 heap.Enqueue(new SymbolNode() { Symbol = symbol }, symbol.Count);
             }
@@ -79,13 +76,12 @@ namespace HuffmanDemo
 
             if (root.Left is null && root.Right is null)
             {
-                if(root is not SymbolNode)
-                {
-                    Console.WriteLine("[!] leaf isnt symbolNode");
-                    Environment.Exit(1);
-                }
+                if (root is not SymbolNode)
+                    throw new InvalidDataException("leaf is not SymbolNode in Huffman.EncodeLeafs()");
+
                 var leaf = (SymbolNode)root;
                 leaf.Symbol.Encoding = new List<bool>(currentEncoding);
+
                 return;
             }
 
@@ -98,11 +94,10 @@ namespace HuffmanDemo
             currentEncoding.RemoveAt(currentEncoding.Count - 1);
         }
 
-        public static string Decode(List<bool> encoded, IEnumerable<SymbolType> symbolTable) 
+        public static string Decode(List<bool> encoded, IEnumerable<SymbolType> symbolTable)
         {
             Node root = BuildTree(symbolTable);
 
-            // treversat copacul cu bitii din encoded si append la string.
             string decoded = "";
             Node? currentNode = root;
             List<bool> currentEncoding = [];
@@ -110,22 +105,22 @@ namespace HuffmanDemo
             foreach (var bit in encoded)
             {
                 if (currentNode is null)
-                    throw new InvalidDataException("currentNode is null in Huffman.Decode");
+                    throw new InvalidDataException("currentNode is null in Huffman.Decode()");
 
                 currentEncoding.Add(bit);
                 currentNode = bit ? currentNode.Right : currentNode.Left;
 
                 if (currentNode is null)
-                    throw new InvalidDataException("currentNode is null in Huffman.Decode");
+                    throw new InvalidDataException("currentNode is null in Huffman.Decode()");
 
-                if(currentNode.Left is null && currentNode.Right is null)
+                if (currentNode.Left is null && currentNode.Right is null)
                 {
-                    if(currentNode is not SymbolNode)
-                        throw new InvalidDataException("leaf is not SymbolNode in Huffman.Decode");
+                    if (currentNode is not SymbolNode)
+                        throw new InvalidDataException("leaf is not SymbolNode in Huffman.Decode()");
 
                     SymbolType symbol = ((SymbolNode)currentNode).Symbol;
                     if (!symbol.Encoding.SequenceEqual(currentEncoding))
-                        throw new InvalidDataException("current encoding differs from the original in Huffman.Decode");
+                        throw new InvalidDataException("current encoding differs from the original in Huffman.Decode()");
 
                     decoded += symbol.Symbol;
                     currentEncoding = [];
@@ -139,7 +134,7 @@ namespace HuffmanDemo
 
 
         private abstract class Node
-        { 
+        {
             public abstract int Count { get; }
             public Node? Left { get; set; } = null;
             public Node? Right { get; set; } = null;
@@ -172,11 +167,8 @@ namespace HuffmanDemo
                 Right = right;
                 _count = left.Count + right.Count;
 
-                if(_count <= 0)
-                {
-                    Console.WriteLine("[!] overflow in InternalNode");
-                    Environment.Exit(1);
-                }
+                if (_count <= 0)
+                    throw new OverflowException("_count overflow in Huffman.InternalNode.InternalNode()");
             }
 
             public override int Count => _count;
