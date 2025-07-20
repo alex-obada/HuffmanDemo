@@ -13,7 +13,7 @@ namespace HuffmanDemo
         public static (List<bool> encoded, IEnumerable<SymbolType> symbolTable) Encode(string message)
         {
             if (string.IsNullOrEmpty(message) || message.Length == 1)
-                throw new ArgumentException("message is null, empty or invalid in Huffman.Decode()");
+                throw new ArgumentException("message is null, empty or invalid in Huffman.Encode()");
 
             Dictionary<char, SymbolType> symbolDict = [];
 
@@ -30,16 +30,7 @@ namespace HuffmanDemo
             List<bool> encoding = [];
             EncodeLeafs(root, encoding);
 
-            // debug
-            foreach (var symbol in symbolDict.Values)
-            {
-                Console.Write($"{symbol.Symbol} : {symbol.Count} : ");
-                foreach (bool bit in symbol.Encoding)
-                    Console.Write(bit ? '1' : '0');
-                Console.WriteLine();
-            }
-
-            encoding.Clear();
+            //encoding.Clear(); // redundant
             foreach (char ch in message)
                 encoding.AddRange(symbolDict[ch].Encoding);
 
@@ -100,7 +91,7 @@ namespace HuffmanDemo
 
             if (encoded is null || encoded.Count < 2)
                 throw new ArgumentException("bit list is null or invalid in Huffman.Decode()");
-            if (symbolTable is null || symbolTable.Any(symbol => symbol.Count < 1) || symbolTable.Count(x => true) < 2)
+            if (symbolTable is null || symbolTable.Any(symbol => symbol.Count < 1) || symbolTable.Skip(1).Any() == false)
                 throw new ArgumentException("invalid symbolTable in Huffman.Decode()");
 
             Node root = BuildTree(symbolTable);
