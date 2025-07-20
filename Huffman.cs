@@ -10,7 +10,7 @@ namespace HuffmanDemo
 {
     internal static class Huffman
     {
-        public static (List<bool> encoded, List<SymbolType> symbolTable) Encode(string message) 
+        public static (List<bool> encoded, List<SymbolType> symbolTable) Encode(string message)
         {
             ArgumentNullException.ThrowIfNull(message);
 
@@ -27,39 +27,17 @@ namespace HuffmanDemo
                     }
                 }
 
-                if(index == -1)
+                if (index == -1)
                     symbols.Add(new SymbolType { Symbol = c, Count = 1 });
                 else
                     symbols[index].Count++;
             }
 
             // constriuit arborele cu un min heap
-            var heap = new PriorityQueue<Node, int>();
+            Node root = BuildTree(symbols);
+            List<bool> currentEncoding = [];
 
-            foreach (SymbolType symbol in symbols)
-            {
-                if (symbol.Count <= 0)
-                {
-                    Console.WriteLine("[!] symbolType.Count overflow");
-                    Environment.Exit(1);
-                }
-
-                heap.Enqueue(new SymbolNode() { Symbol = symbol }, symbol.Count);
-            }
-
-            while(heap.Count > 1)
-            {
-                var left = heap.Dequeue();
-                var right = heap.Dequeue();
-                var newElem = new InternalNode(left, right); 
-
-                heap.Enqueue(newElem, newElem.Count);
-            }
-
-            Node root = heap.Dequeue();
-            List<bool> curentEncoding = [];
-
-            EncodeLeafs(root, curentEncoding);
+            EncodeLeafs(root, currentEncoding);
 
             foreach (var symbol in symbols)
             {
@@ -74,8 +52,8 @@ namespace HuffmanDemo
             List<bool> encoded = [];
             foreach (char ch in message)
             {
-                foreach(var symbol in symbols)
-                    if(symbol.Symbol == ch)
+                foreach (var symbol in symbols)
+                    if (symbol.Symbol == ch)
                     {
                         encoded.AddRange(symbol.Encoding);
                         break;
@@ -85,7 +63,34 @@ namespace HuffmanDemo
             return (encoded, symbols);
         }
 
-        private static void EncodeLeafs(Node? root, List<bool> curentEncoding)
+        private static Node BuildTree(List<SymbolType> symbols)
+        {
+            var heap = new PriorityQueue<Node, int>();
+
+            foreach (SymbolType symbol in symbols)
+            {
+                if (symbol.Count <= 0)
+                {
+                    Console.WriteLine("[!] symbolType.Count overflow");
+                    Environment.Exit(1);
+                }
+
+                heap.Enqueue(new SymbolNode() { Symbol = symbol }, symbol.Count);
+            }
+
+            while (heap.Count > 1)
+            {
+                var left = heap.Dequeue();
+                var right = heap.Dequeue();
+                var newElem = new InternalNode(left, right);
+
+                heap.Enqueue(newElem, newElem.Count);
+            }
+
+            return heap.Dequeue();
+        }
+
+        private static void EncodeLeafs(Node? root, List<bool> currentEncoding)
         {
             if (root is null)
                 return;
@@ -98,24 +103,58 @@ namespace HuffmanDemo
                     Environment.Exit(1);
                 }
                 var leaf = (SymbolNode)root;
-                leaf.Symbol.Encoding = new List<bool>(curentEncoding);
+                leaf.Symbol.Encoding = new List<bool>(currentEncoding);
                 return;
             }
 
-            curentEncoding.Add(false);
-            EncodeLeafs(root.Left, curentEncoding);
+            currentEncoding.Add(false);
+            EncodeLeafs(root.Left, currentEncoding);
 
-            curentEncoding[^1] = true;
-            EncodeLeafs(root.Right, curentEncoding);
+            currentEncoding[^1] = true;
+            EncodeLeafs(root.Right, currentEncoding);
 
-            curentEncoding.RemoveAt(curentEncoding.Count - 1);
+            currentEncoding.RemoveAt(currentEncoding.Count - 1);
         }
 
-        public static string Decode(List<bool> encoded, List<SymbolType> symbolTree) 
+        public static string Decode(List<bool> encoded, List<SymbolType> symbolTable) 
         {
+            Node root = BuildTree(symbolTable);
+
             // treversat copacul cu bitii din encoded si append la string.
-            return "";
+            string decoded = "";
+            Node? currentNode = root;
+            List<bool> currentEncoding = [];
+
+            foreach (var bit in encoded)
+            {
+                if (currentNode is null)
+                    throw new InvalidDataException("currentNode is null in Huffman.Decode");
+
+                currentEncoding.Add(bit);
+                currentNode = bit ? currentNode.Right : currentNode.Left;
+
+                if (currentNode is null)
+                    throw new InvalidDataException("currentNode is null in Huffman.Decode");
+
+                if(currentNode.Left is null && currentNode.Right is null)
+                {
+                    if(currentNode is not SymbolNode)
+                        throw new InvalidDataException("leaf is not SymbolNode in Huffman.Decode");
+
+                    SymbolType symbol = ((SymbolNode)currentNode).Symbol;
+                    if (!symbol.Encoding.SequenceEqual(currentEncoding))
+                        throw new InvalidDataException("current encoding differs from the original in Huffman.Decode");
+
+                    decoded += symbol.Symbol;
+                    currentEncoding = [];
+                    currentNode = root;
+                }
+
+
+            }
+            return decoded;
         }
+
 
         private abstract class Node
         { 
