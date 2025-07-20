@@ -12,7 +12,8 @@ namespace HuffmanDemo
     {
         public static (List<bool> encoded, IEnumerable<SymbolType> symbolTable) Encode(string message)
         {
-            ArgumentNullException.ThrowIfNull(message);
+            if (string.IsNullOrEmpty(message) || message.Length == 1)
+                throw new ArgumentException("message is null, empty or invalid in Huffman.Decode()");
 
             Dictionary<char, SymbolType> symbolDict = [];
 
@@ -96,6 +97,12 @@ namespace HuffmanDemo
 
         public static string Decode(List<bool> encoded, IEnumerable<SymbolType> symbolTable)
         {
+
+            if (encoded is null || encoded.Count < 2)
+                throw new ArgumentException("bit list is null or invalid in Huffman.Decode()");
+            if (symbolTable is null || symbolTable.Any(symbol => symbol.Count < 1) || symbolTable.Count(x => true) < 2)
+                throw new ArgumentException("invalid symbolTable in Huffman.Decode()");
+
             Node root = BuildTree(symbolTable);
 
             StringBuilder decoded = new();
@@ -136,17 +143,11 @@ namespace HuffmanDemo
             public abstract long Count { get; }
             public Node? Left { get; set; } = null;
             public Node? Right { get; set; } = null;
-
-            public static bool operator <(Node a, Node b)
-                => a.Count < b.Count;
-
-            public static bool operator >(Node a, Node b)
-                => a.Count > b.Count;
         }
 
         public class SymbolType
         {
-            public char Symbol { get; set; }
+            public required char Symbol { get; set; }
             public long Count { get; set; } = 0;
             public List<bool> Encoding { get; set; } = [];
         }
