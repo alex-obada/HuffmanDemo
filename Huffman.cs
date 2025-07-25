@@ -10,7 +10,7 @@ namespace HuffmanDemo
 {
     internal static class Huffman
     {
-        public static (List<bool> encoded, IEnumerable<SymbolType> symbolTable) Encode(string message)
+        public static EncodedMessage Encode(string message)
         {
             if (string.IsNullOrEmpty(message) || message.Length == 1)
                 throw new ArgumentException("message is null, empty or invalid in Huffman.Encode()");
@@ -34,8 +34,108 @@ namespace HuffmanDemo
             foreach (char ch in message)
                 encoding.AddRange(symbolDict[ch].Encoding);
 
-            return (encoding, symbolDict.Values);
+            return new EncodedMessage
+            {
+                Encoded = encoding,
+                SymbolTable = symbolDict.Values
+            };
         }
+
+        public static string Decode(EncodedMessage encodedMessage)
+        {
+            ArgumentNullException.ThrowIfNull(encodedMessage);
+            (List<bool> encoded, IEnumerable<SymbolType> symbolTable) = encodedMessage;
+            return Decode(encoded,symbolTable);
+        }
+
+        public static string Decode(List<bool> encoded, IEnumerable<SymbolType> symbolTable)
+        {
+            if (encoded is null || encoded.Count < 2)
+                throw new ArgumentException("bit list is null or invalid in Huffman.Decode()");
+            if (symbolTable is null || symbolTable.Any(symbol => symbol.Count < 1) || symbolTable.Skip(1).Any() == false)
+                throw new ArgumentException("invalid symbolTable in Huffman.Decode()");
+
+            Node root = BuildTree(symbolTable);
+
+            StringBuilder decoded = new();
+            Node? currentNode = root;
+            List<bool> currentEncoding = [];
+
+            foreach (var bit in encoded)
+            {
+                if (currentNode is null)
+                    throw new InvalidDataException("currentNode is null in Huffman.Decode()");
+
+                currentEncoding.Add(bit);
+                currentNode = bit ? currentNode.Right : currentNode.Left;
+
+                if (currentNode is null)
+                    throw new InvalidDataException("currentNode is null in Huffman.Decode()");
+
+                if (currentNode is { Left: null, Right: null })
+                {
+                    if (currentNode is not SymbolNode leaf)
+                        throw new InvalidDataException("leaf is not SymbolNode in Huffman.Decode()");
+
+                    SymbolType symbol = leaf.Symbol;
+                    if (!symbol.Encoding.SequenceEqual(currentEncoding))
+                        throw new InvalidDataException("current encoding differs from the original in Huffman.Decode()");
+
+                    decoded.Append(symbol.Symbol);
+                    currentEncoding.Clear();
+                    currentNode = root;
+                }
+            }
+
+            return decoded.ToString();
+        }
+
+        public class EncodedMessage : IBinarySerializable
+        {
+            public required List<bool> Encoded { get; set; }
+            public required IEnumerable<SymbolType> SymbolTable { get; set; }
+
+            public void Deconstruct(out List<bool> encoded, out IEnumerable<SymbolType> symbolTable)
+            {
+                encoded = Encoded;
+                symbolTable = SymbolTable;
+            }
+
+            public void Serialize(BinaryWriter writer)
+            {
+                // Encoded Bits
+                writer.Write(Encoded.Count);
+                foreach (var bit in Encoded)
+                    writer.Write(bit);
+
+                // Symbol Table
+                var symbols = SymbolTable.ToList();
+                writer.Write(symbols.Count);
+                foreach (var symbol in symbols)
+                    symbol.Serialize(writer);
+            }
+
+            public void Deserialize(BinaryReader reader)
+            {
+                // Encoded Bits
+                int encodedCount = reader.ReadInt32();
+                Encoded = new List<bool>(encodedCount);
+                for (int i = 0; i < encodedCount; i++)
+                    Encoded.Add(reader.ReadBoolean());
+
+                // Symbol Table
+                int symbolCount = reader.ReadInt32();
+                var symbols = new List<SymbolType>(symbolCount);
+                for (int i = 0; i < symbolCount; i++)
+                {
+                    var symbol = new SymbolType();
+                    symbol.Deserialize(reader);
+                    symbols.Add(symbol);
+                }
+                SymbolTable = symbols;
+            }
+        }
+
 
         private static Node BuildTree(IEnumerable<SymbolType> symbols)
         {
@@ -86,48 +186,6 @@ namespace HuffmanDemo
             currentEncoding.RemoveAt(currentEncoding.Count - 1);
         }
 
-        public static string Decode(List<bool> encoded, IEnumerable<SymbolType> symbolTable)
-        {
-
-            if (encoded is null || encoded.Count < 2)
-                throw new ArgumentException("bit list is null or invalid in Huffman.Decode()");
-            if (symbolTable is null || symbolTable.Any(symbol => symbol.Count < 1) || symbolTable.Skip(1).Any() == false)
-                throw new ArgumentException("invalid symbolTable in Huffman.Decode()");
-
-            Node root = BuildTree(symbolTable);
-
-            StringBuilder decoded = new();
-            Node? currentNode = root;
-            List<bool> currentEncoding = [];
-
-            foreach (var bit in encoded)
-            {
-                if (currentNode is null)
-                    throw new InvalidDataException("currentNode is null in Huffman.Decode()");
-
-                currentEncoding.Add(bit);
-                currentNode = bit ? currentNode.Right : currentNode.Left;
-
-                if (currentNode is null)
-                    throw new InvalidDataException("currentNode is null in Huffman.Decode()");
-
-                if (currentNode is { Left: null, Right: null })
-                {
-                    if (currentNode is not SymbolNode leaf)
-                        throw new InvalidDataException("leaf is not SymbolNode in Huffman.Decode()");
-
-                    SymbolType symbol = leaf.Symbol;
-                    if (!symbol.Encoding.SequenceEqual(currentEncoding))
-                        throw new InvalidDataException("current encoding differs from the original in Huffman.Decode()");
-
-                    decoded.Append(symbol.Symbol);
-                    currentEncoding.Clear();
-                    currentNode = root;
-                }
-            }
-            return decoded.ToString();
-        }
-
 
         private abstract class Node
         {
@@ -136,11 +194,32 @@ namespace HuffmanDemo
             public Node? Right { get; set; } = null;
         }
 
-        public class SymbolType
+        public class SymbolType : IBinarySerializable
         {
-            public required char Symbol { get; set; }
+            public char Symbol { get; set; }
             public long Count { get; set; } = 0;
             public List<bool> Encoding { get; set; } = [];
+
+            public void Deserialize(BinaryReader reader)
+            {
+                Symbol = reader.ReadChar();
+                Count = reader.ReadInt64();
+
+                int encodingCount = reader.ReadInt32();
+                Encoding = new List<bool>(encodingCount);
+                for (int i = 0; i < encodingCount; i++)
+                    Encoding.Add(reader.ReadBoolean());
+            }
+
+            public void Serialize(BinaryWriter writer)
+            {
+                writer.Write(Symbol);
+                writer.Write(Count);
+
+                writer.Write(Encoding.Count);
+                foreach (var bit in Encoding)
+                    writer.Write(bit);
+            }
         }
 
         private class SymbolNode : Node
