@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace HuffmanDemo
 {
-    internal static class Huffman
+    internal static partial class Huffman
     {
         public static EncodedMessage Encode(string message)
         {
@@ -90,53 +90,6 @@ namespace HuffmanDemo
             return decoded.ToString();
         }
 
-        public class EncodedMessage : IBinarySerializable
-        {
-            public required List<bool> Encoded { get; set; }
-            public required IEnumerable<SymbolType> SymbolTable { get; set; }
-
-            public void Deconstruct(out List<bool> encoded, out IEnumerable<SymbolType> symbolTable)
-            {
-                encoded = Encoded;
-                symbolTable = SymbolTable;
-            }
-
-            public void Serialize(BinaryWriter writer)
-            {
-                // Encoded Bits
-                writer.Write(Encoded.Count);
-                foreach (var bit in Encoded)
-                    writer.Write(bit);
-
-                // Symbol Table
-                var symbols = SymbolTable.ToList();
-                writer.Write(symbols.Count);
-                foreach (var symbol in symbols)
-                    symbol.Serialize(writer);
-            }
-
-            public void Deserialize(BinaryReader reader)
-            {
-                // Encoded Bits
-                int encodedCount = reader.ReadInt32();
-                Encoded = new List<bool>(encodedCount);
-                for (int i = 0; i < encodedCount; i++)
-                    Encoded.Add(reader.ReadBoolean());
-
-                // Symbol Table
-                int symbolCount = reader.ReadInt32();
-                var symbols = new List<SymbolType>(symbolCount);
-                for (int i = 0; i < symbolCount; i++)
-                {
-                    var symbol = new SymbolType();
-                    symbol.Deserialize(reader);
-                    symbols.Add(symbol);
-                }
-                SymbolTable = symbols;
-            }
-        }
-
-
         private static Node BuildTree(IEnumerable<SymbolType> symbols)
         {
             var heap = new PriorityQueue<Node, long>();
@@ -184,65 +137,6 @@ namespace HuffmanDemo
             EncodeLeafs(root.Right, currentEncoding);
 
             currentEncoding.RemoveAt(currentEncoding.Count - 1);
-        }
-
-
-        private abstract class Node
-        {
-            public abstract long Count { get; }
-            public Node? Left { get; set; } = null;
-            public Node? Right { get; set; } = null;
-        }
-
-        public class SymbolType : IBinarySerializable
-        {
-            public char Symbol { get; set; }
-            public long Count { get; set; } = 0;
-            public List<bool> Encoding { get; set; } = [];
-
-            public void Deserialize(BinaryReader reader)
-            {
-                Symbol = reader.ReadChar();
-                Count = reader.ReadInt64();
-
-                int encodingCount = reader.ReadInt32();
-                Encoding = new List<bool>(encodingCount);
-                for (int i = 0; i < encodingCount; i++)
-                    Encoding.Add(reader.ReadBoolean());
-            }
-
-            public void Serialize(BinaryWriter writer)
-            {
-                writer.Write(Symbol);
-                writer.Write(Count);
-
-                writer.Write(Encoding.Count);
-                foreach (var bit in Encoding)
-                    writer.Write(bit);
-            }
-        }
-
-        private class SymbolNode : Node
-        {
-            public required SymbolType Symbol { get; set; }
-            public override long Count => Symbol.Count;
-        }
-
-        private class InternalNode : Node
-        {
-            public InternalNode(Node left, Node right)
-            {
-                Left = left;
-                Right = right;
-                _count = left.Count + right.Count;
-
-                if (_count < 1)
-                    throw new OverflowException("_count overflow in Huffman.InternalNode.InternalNode()");
-            }
-
-            public override long Count => _count;
-
-            private readonly long _count;
         }
     }
 }

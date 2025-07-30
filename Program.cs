@@ -31,8 +31,8 @@ namespace HuffmanDemo
             Console.WriteLine($"compresat: {compressedSize}");
             Console.WriteLine($"ratio: {100.0 * compressedSize / originalSize}");
 
-
-
+            Console.WriteLine();
+            Console.WriteLine(encodedMessage.ToString());
 
             Stream inputStream = new MemoryStream();
             BinaryWriter writer = new(inputStream);
@@ -64,8 +64,8 @@ namespace HuffmanDemo
 
 
 }
-/*   
-    011110011100100101101111100010
-    011110011100100101101111100010
-    
+/*
+ * ana are mere
+011110011100100101101111100010
+011110011100100101101111100010  
 */
