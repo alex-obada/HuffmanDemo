@@ -3,7 +3,6 @@ using static HuffmanDemo.Huffman;
 
 namespace HuffmanDemo
 {
-
     internal class Program
     {
         static void Main(string[] args)
@@ -13,16 +12,13 @@ namespace HuffmanDemo
 
             var message = "ana are mere";
 
-            //message = Console.ReadLine();
+            message = Console.ReadLine();
 
             var encodedMessage = Huffman.Encode(message);
             (List<bool> encoded, var symbols) = encodedMessage;
 
 
 
-            foreach (var bit in encoded)
-                Console.Write(bit ? '1' : '0');
-            Console.WriteLine();
 
             int originalSize = 8 * message.Length;
             int compressedSize = encoded.Count;
@@ -30,6 +26,9 @@ namespace HuffmanDemo
             Console.WriteLine($"original: {originalSize}");
             Console.WriteLine($"compresat: {compressedSize}");
             Console.WriteLine($"ratio: {100.0 * compressedSize / originalSize}");
+
+            Console.WriteLine();
+
 
             Console.WriteLine();
             Console.WriteLine(encodedMessage.ToString());
@@ -55,6 +54,9 @@ namespace HuffmanDemo
             var decoded = Huffman.Decode(encoded, symbols);
 
             Console.WriteLine(decoded);
+
+            Console.WriteLine($"original nr of bytes: {message.Length}");
+
 
         }
     }

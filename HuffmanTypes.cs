@@ -4,29 +4,26 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace HuffmanDemo
 {
     internal static partial class Huffman
     {
         public class EncodedMessage : IBinarySerializable
         {
-            public required List<bool> Encoded { get; set; }
+            public required List<bool> Message { get; set; }
             public required IEnumerable<SymbolType> SymbolTable { get; set; }
 
             public void Deconstruct(out List<bool> encoded, out IEnumerable<SymbolType> symbolTable)
             {
-                encoded = Encoded;
+                encoded = Message;
                 symbolTable = SymbolTable;
             }
 
             public void Serialize(BinaryWriter writer)
             {
-                // Encoded Bits
-                writer.Write(Encoded.Count);
-                foreach (var bit in Encoded)
-                    writer.Write(bit);
+                BitHelper.WriteBoolList(writer, Message);
 
-                // Symbol Table
                 var symbols = SymbolTable.ToList();
                 writer.Write(symbols.Count);
                 foreach (var symbol in symbols)
@@ -35,13 +32,8 @@ namespace HuffmanDemo
 
             public void Deserialize(BinaryReader reader)
             {
-                // Encoded Bits
-                int encodedCount = reader.ReadInt32();
-                Encoded = new List<bool>(encodedCount);
-                for (int i = 0; i < encodedCount; i++)
-                    Encoded.Add(reader.ReadBoolean());
+                Message = BitHelper.ReadBoolList(reader);
 
-                // Symbol Table
                 int symbolCount = reader.ReadInt32();
                 var symbols = new List<SymbolType>(symbolCount);
                 for (int i = 0; i < symbolCount; i++)
@@ -57,8 +49,8 @@ namespace HuffmanDemo
             {
                 StringBuilder stringBuilder = new();
 
-                stringBuilder.AppendLine($"Encoded Message ({Encoded.Count} bits):");
-                foreach (var bit in Encoded)
+                stringBuilder.AppendLine($"Encoded Message ({Message.Count} bits):");
+                foreach (var bit in Message)
                     stringBuilder.Append(bit ? "1" : "0");
                 stringBuilder.AppendLine();
 
@@ -88,10 +80,7 @@ namespace HuffmanDemo
                 Symbol = reader.ReadChar();
                 Count = reader.ReadInt64();
 
-                int encodingCount = reader.ReadInt32();
-                Encoding = new List<bool>(encodingCount);
-                for (int i = 0; i < encodingCount; i++)
-                    Encoding.Add(reader.ReadBoolean());
+                Encoding = BitHelper.ReadBoolList(reader);
             }
 
             public void Serialize(BinaryWriter writer)
@@ -99,9 +88,7 @@ namespace HuffmanDemo
                 writer.Write(Symbol);
                 writer.Write(Count);
 
-                writer.Write(Encoding.Count);
-                foreach (var bit in Encoding)
-                    writer.Write(bit);
+                BitHelper.WriteBoolList(writer, Encoding);
             }
 
             public override string ToString()
@@ -147,6 +134,5 @@ namespace HuffmanDemo
 
             private readonly long _count;
         }
-
     }
 }

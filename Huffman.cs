@@ -36,7 +36,7 @@ namespace HuffmanDemo
 
             return new EncodedMessage
             {
-                Encoded = encoding,
+                Message = encoding,
                 SymbolTable = symbolDict.Values
             };
         }
