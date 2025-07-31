@@ -11,8 +11,14 @@ namespace HuffmanDemo
     {
         public class EncodedMessage : IBinarySerializable
         {
-            public required List<bool> Message { get; set; }
-            public required IEnumerable<SymbolType> SymbolTable { get; set; }
+            public List<bool> Message { get; set; }
+            public IEnumerable<SymbolType> SymbolTable { get; set; }
+
+            public EncodedMessage() 
+            {
+                Message = [];
+                SymbolTable = [];
+            }
 
             public void Deconstruct(out List<bool> encoded, out IEnumerable<SymbolType> symbolTable)
             {

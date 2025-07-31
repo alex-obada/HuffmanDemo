@@ -7,18 +7,29 @@ namespace HuffmanDemo
     {
         static void Main(string[] args)
         {
-       
-           
+            char sr = Console.ReadLine()[0];
 
+            if (sr == 's')
+                SendData();
+            else
+                ReceiveData();
+        }
+
+        private static void ReceiveData()
+        {
+            EncodedMessage encoded = NetworkHelper.ReceiveMessage();
+            string messaje = Huffman.Decode(encoded);
+            Console.WriteLine(messaje);
+        }
+
+        private static void SendData()
+        {
             var message = "ana are mere";
 
-            message = Console.ReadLine();
+            //message = Console.ReadLine();
 
             var encodedMessage = Huffman.Encode(message);
             (List<bool> encoded, var symbols) = encodedMessage;
-
-
-
 
             int originalSize = 8 * message.Length;
             int compressedSize = encoded.Count;
@@ -27,36 +38,19 @@ namespace HuffmanDemo
             Console.WriteLine($"compresat: {compressedSize}");
             Console.WriteLine($"ratio: {100.0 * compressedSize / originalSize}");
 
+            NetworkHelper.SendMessage(encodedMessage, "localhost");
+            
             Console.WriteLine();
 
-
-            Console.WriteLine();
             Console.WriteLine(encodedMessage.ToString());
 
-            Stream inputStream = new MemoryStream();
-            BinaryWriter writer = new(inputStream);
-            encodedMessage.Serialize(writer);
-
-            //writer.Flush();
-
-            // Write memory stream to file
-            inputStream.Position = 0; // Rewind to beginning
-            using (FileStream fileStream = File.Create("encoded_message.bin"))
-            {
-                inputStream.CopyTo(fileStream);
-            }
-
             
-            using (FileStream fileStream = File.OpenRead("encoded_message.bin"))
-            using (BinaryReader reader = new(fileStream))
-                encodedMessage.Deserialize(reader);
 
             var decoded = Huffman.Decode(encoded, symbols);
 
             Console.WriteLine(decoded);
 
-            Console.WriteLine($"original nr of bytes: {message.Length}");
-
+            Console.WriteLine($"\noriginal nr of bytes: {message.Length}");
 
         }
     }
