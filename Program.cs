@@ -26,32 +26,29 @@ namespace HuffmanDemo
         {
             var message = "ana are mere";
 
-            //message = Console.ReadLine();
+            message = Console.ReadLine();
 
-            var encodedMessage = Huffman.Encode(message);
-            (List<bool> encoded, var symbols) = encodedMessage;
+            var em = Huffman.Encode(message);
+            //ShowEncodingDetails(message, em);
 
-            int originalSize = 8 * message.Length;
-            int compressedSize = encoded.Count;
+            NetworkHelper.SendMessage(em, "localhost");
 
-            Console.WriteLine($"original: {originalSize}");
-            Console.WriteLine($"compresat: {compressedSize}");
-            Console.WriteLine($"ratio: {100.0 * compressedSize / originalSize}");
+            Console.WriteLine($"[Client] Message sent");
 
-            NetworkHelper.SendMessage(encodedMessage, "localhost");
-            
-            Console.WriteLine();
+        }
 
-            Console.WriteLine(encodedMessage.ToString());
+        private static void ShowEncodingDetails(string message, EncodedMessage em)
+        {
+            int originalSize = message.Length;
 
-            
+            int compressedSize = 4 + (em.Message.Count + 7) / 8 + // encoded 
+                                 4 + em.SymbolTable.Count() * (1 + 4 + 1); // symbols (~= 1 byte per encoding)
 
-            var decoded = Huffman.Decode(encoded, symbols);
+            Console.WriteLine($"\noriginal: {originalSize} bytes");
+            Console.WriteLine($"compressed: {compressedSize} bytes");
+            Console.WriteLine($"ratio: {100.0 * compressedSize / originalSize}\n");
 
-            Console.WriteLine(decoded);
-
-            Console.WriteLine($"\noriginal nr of bytes: {message.Length}");
-
+            Console.WriteLine(em.ToString());
         }
     }
 

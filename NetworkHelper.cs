@@ -11,38 +11,100 @@ namespace HuffmanDemo
 {
     internal static class NetworkHelper
     {
-        public static void SendMessage(EncodedMessage encodedMessage, string hostname, int port = 9999)
+        public static void SendMessage(EncodedMessage message, string hostname = "localhost", int port = 9999)
         {
-            Stream messageStream = new MemoryStream();
-            BinaryWriter writer = new(messageStream);
-            encodedMessage.Serialize(writer);
+            byte[] payload = SerializeMessage(message);
 
-            using TcpClient client = new TcpClient(hostname, port);
-            using NetworkStream networkStream = client.GetStream();
+            try
+            {
+                using TcpClient client = new(hostname, port);
+                using NetworkStream stream = client.GetStream();
+                using BinaryWriter writer = new(stream);
 
-            messageStream.Position = 0;
-            messageStream.CopyTo(networkStream);
-            networkStream.Flush();
+                Console.WriteLine($"[Client] Connected to {hostname}");
+
+                // Write message length first (4 bytes)
+                writer.Write(payload.Length);
+                // Then write the actual message
+                writer.Write(payload);
+                writer.Flush();
+            }
+            catch (SocketException ex)
+            {
+                Console.Error.WriteLine($"[SocketException] Connection error: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                Console.Error.WriteLine($"[IOException] Error on writing to network: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[Exception] Unexpected error on receiving: {ex.Message}");
+            }
         }
 
-        public static EncodedMessage ReceiveMessage(int port = 9999)
+        private static byte[] SerializeMessage(EncodedMessage message)
         {
-            TcpListener listener = new TcpListener(IPAddress.Any, port);
-            listener.Start();
+            using MemoryStream ms = new();
+            using BinaryWriter writer = new(ms);
 
-            using TcpClient client = listener.AcceptTcpClient();
-            using NetworkStream networkStream = client.GetStream();
+            message.Serialize(writer);
+            return ms.ToArray();
+        }
 
-            MemoryStream receivedData = new MemoryStream();
-            networkStream.CopyTo(receivedData);
-            receivedData.Position = 0;
 
-            listener.Stop();
+        public static EncodedMessage? ReceiveMessage(int port = 9999)
+        {
+            try
+            {
+                TcpListener listener = new(IPAddress.Any, port);
+                listener.Start();
+                Console.WriteLine($"[Server] Listening on port {port}...");
 
+                using TcpClient client = listener.AcceptTcpClient();
+                using NetworkStream stream = client.GetStream();
+                Console.WriteLine($"[Server] Client connected");
+                using BinaryReader reader = new(stream);
+
+                // Read message length
+                int length = reader.ReadInt32();
+
+                if (length <= 0 || length > 10_000_000)  // 10 MB
+                    throw new InvalidDataException($"(Network.ReceiveMessage) Invalid length: {length}");
+
+                // Then the actual message
+                byte[] buffer = reader.ReadBytes(length);
+
+                if (buffer.Length != length)
+                    throw new EndOfStreamException($"(Network.ReceiveMessage) Different length: {buffer.Length} (should be {length})");
+
+                return DeserializeMessage(buffer);
+            }
+            catch (IOException ex)
+            {
+                Console.Error.WriteLine($"[IOException] Error on reading from network: {ex.Message}");
+            }
+            catch (InvalidDataException ex)
+            {
+                Console.Error.WriteLine($"[InvalidData] {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[Exception] Unexpected error on sending: {ex.Message}");
+            }
+
+            return null; 
+        }
+
+        private static EncodedMessage DeserializeMessage(byte[] data)
+        {
+            using MemoryStream ms = new(data);
+            using BinaryReader reader = new(ms);
             EncodedMessage message = new();
-            using (BinaryReader reader = new(receivedData))
-                message.Deserialize(reader);
+
+            message.Deserialize(reader);
             return message;
         }
+
     }
 }
