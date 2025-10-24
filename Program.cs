@@ -1,44 +1,53 @@
 ﻿using System;
+using static HuffmanDemo.CliParser;
 using static HuffmanDemo.Huffman;
+using static HuffmanDemo.NetworkHelper;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HuffmanDemo
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            char sr = Console.ReadLine()[0];
+            var result = Parse(args);
 
-            if (sr == 's')
-                SendData();
-            else
-                ReceiveData();
-        }
+            switch (result.Mode)
+            {
+                case Mode.SendFile:
+                case Mode.SendMessage:
 
-        private static void ReceiveData()
-        {
-            EncodedMessage encoded = NetworkHelper.ReceiveMessage();
-            string messaje = Huffman.Decode(encoded);
-            Console.WriteLine(messaje);
-        }
+                    var encoded = Encode(result.Content);
+                    if(result.Verbose == true)
+                        ShowEncodingDetails(result.Content, encoded);
 
-        private static void SendData()
-        {
-            var message = "ana are mere";
+                    SendMessage(encoded, result.Target, result.Port);
 
-            message = Console.ReadLine();
+                    break;
 
-            var em = Huffman.Encode(message);
-            //ShowEncodingDetails(message, em);
+                case Mode.Listen:
+                    var received = ReceiveMessage(result.Port);
 
-            NetworkHelper.SendMessage(em, "localhost");
+                    var decoded = Decode(received); 
+                    if (result.Verbose == true)
+                        ShowEncodingDetails(decoded, received);
 
-            Console.WriteLine($"[Client] Message sent");
+                    Console.WriteLine("-----BEGIN MESSAGE----");
+                    Console.WriteLine(decoded);
+                    Console.WriteLine("-----END MESSAGE-----");
 
+                    break;
+
+                default:
+                    return 1;
+            }
+            return 0;
         }
 
         private static void ShowEncodingDetails(string message, EncodedMessage em)
         {
+            Console.WriteLine(em.ToString());
+
             int originalSize = message.Length;
 
             int compressedSize = 4 + (em.Message.Count + 7) / 8 + // encoded 
@@ -47,18 +56,6 @@ namespace HuffmanDemo
             Console.WriteLine($"\noriginal: {originalSize} bytes");
             Console.WriteLine($"compressed: {compressedSize} bytes");
             Console.WriteLine($"ratio: {100.0 * compressedSize / originalSize}\n");
-
-            Console.WriteLine(em.ToString());
         }
     }
-
-
-
-
-
 }
-/*
- * ana are mere
-011110011100100101101111100010
-011110011100100101101111100010  
-*/
