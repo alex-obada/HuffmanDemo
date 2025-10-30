@@ -11,6 +11,7 @@ namespace HuffmanDemo
     {
         public enum Mode
         {
+            Help = 0,
             Listen,
             SendFile,
             SendMessage
@@ -147,7 +148,7 @@ namespace HuffmanDemo
 
             public int Port { get; set; } = -1;
 
-            public Mode Mode { get; set; }
+            public Mode Mode { get; set; } = Mode.Help;
 
             public string Content { get; set; } = "";
         }

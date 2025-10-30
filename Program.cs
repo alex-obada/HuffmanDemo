@@ -50,7 +50,9 @@ namespace HuffmanDemo
                         {decoded}
                         -----END MESSAGE-----
                         """);
+                    break;
 
+                case Mode.Help:
                     break;
             }
         }
