@@ -2,7 +2,6 @@
 using static HuffmanDemo.CliParser;
 using static HuffmanDemo.Huffman;
 using static HuffmanDemo.NetworkHelper;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HuffmanDemo
 {
@@ -10,15 +9,28 @@ namespace HuffmanDemo
     {
         static int Main(string[] args)
         {
-            var result = Parse(args);
+            try
+            {
+                var result = Parse(args);
+                Run(result);
+                return 0;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[Error] {e.Message}");
+                return 1;
+            }
+        }
 
+        static void Run(ParseResult result)
+        {
             switch (result.Mode)
             {
                 case Mode.SendFile:
                 case Mode.SendMessage:
 
                     var encoded = Encode(result.Content);
-                    if(result.Verbose == true)
+                    if (result.Verbose)
                         ShowEncodingDetails(result.Content, encoded);
 
                     SendMessage(encoded, result.Target, result.Port);
@@ -26,22 +38,21 @@ namespace HuffmanDemo
                     break;
 
                 case Mode.Listen:
-                    var received = ReceiveMessage(result.Port);
+                    var received = ReceiveMessage(result.Port)
+                        ?? throw new Exception("No message received.");
 
-                    var decoded = Decode(received); 
-                    if (result.Verbose == true)
+                    var decoded = Decode(received);
+                    if (result.Verbose)
                         ShowEncodingDetails(decoded, received);
 
-                    Console.WriteLine("-----BEGIN MESSAGE----");
-                    Console.WriteLine(decoded);
-                    Console.WriteLine("-----END MESSAGE-----");
+                    Console.WriteLine($"""
+                        -----BEGIN MESSAGE-----
+                        {decoded}
+                        -----END MESSAGE-----
+                        """);
 
                     break;
-
-                default:
-                    return 1;
             }
-            return 0;
         }
 
         private static void ShowEncodingDetails(string message, EncodedMessage em)

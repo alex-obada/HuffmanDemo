@@ -9,6 +9,13 @@ namespace HuffmanDemo
 {
     internal static class CliParser
     {
+        public enum Mode
+        {
+            Listen,
+            SendFile,
+            SendMessage
+        }
+
         public static ParseResult Parse(string[] args)
         {
             if (args.Length == 0)
@@ -130,13 +137,7 @@ namespace HuffmanDemo
             return new ParseResult();
         }
 
-        public enum Mode
-        {
-            Help = 0,
-            Listen,
-            SendFile,
-            SendMessage
-        }
+
 
         public class ParseResult
         {
@@ -146,7 +147,7 @@ namespace HuffmanDemo
 
             public int Port { get; set; } = -1;
 
-            public Mode Mode { get; set; } = Mode.Help;
+            public Mode Mode { get; set; }
 
             public string Content { get; set; } = "";
         }
