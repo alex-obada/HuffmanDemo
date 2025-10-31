@@ -29,7 +29,7 @@ namespace HuffmanDemo
             {
                 ["send", var target, "-m", var msg]     => HandleSend(target, msg, false, verbose),
                 ["send", var portStr, "-f", var file]   => HandleSend(portStr, file, true, verbose),
-                ["listen", "-p", var port]            => HandleListen(port, verbose),
+                ["listen", "-p", var port]              => HandleListen(port, verbose),
                 ["help"]                                => PrintHelp(),
                 _                                       => PrintHelp("Invalid syntax")
             };
